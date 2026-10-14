@@ -1,0 +1,17 @@
+node_modules/
+.expo/
+dist/
+*.ipa
+*.apk
+.env
+.DS_Store
+# Append to your existing .gitignore
+ios/
+android/
+output/
+*.ipa
+*.p12
+*.mobileprovision
+AuthKey_*.p8
+*.xcarchive
+*.keychain-db
