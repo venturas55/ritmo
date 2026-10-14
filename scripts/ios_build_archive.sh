@@ -18,20 +18,45 @@ BUILD_NUMBER="${GITHUB_RUN_NUMBER:?Missing run number}"
 
 mkdir -p "$PWD/output"
 ARCHIVE="$RUNNER_TEMP/Ritmo.xcarchive"
+DERIVED_DATA="$RUNNER_TEMP/RitmoDerivedData"
+RESULT_BUNDLE="$RUNNER_TEMP/RitmoArchive.xcresult"
+# Delete only the fixed build paths belonging to this CI job.
+: "${RUNNER_TEMP:?Missing RUNNER_TEMP}"
+[[ "$RUNNER_TEMP" = /* && "$RUNNER_TEMP" != / ]] || { echo 'RUNNER_TEMP must be an absolute temporary directory'; exit 1; }
+rm -rf "$DERIVED_DATA" "$ARCHIVE" "$RESULT_BUNDLE"
 
-xcodebuild archive \
+# Apply manual signing only to app targets. Command-line signing settings also
+# override CocoaPods targets, which must retain their generated build settings.
+ruby - ios <<'RUBY'
+require 'xcodeproj'
+project_path = Dir.glob(File.join(ARGV.fetch(0), '*.xcodeproj')).fetch(0)
+project = Xcodeproj::Project.open(project_path)
+apps = project.targets.select { |target| target.product_type == 'com.apple.product-type.application' }
+abort 'No application target found' if apps.empty?
+apps.each do |target|
+  target.build_configurations.each do |config|
+    next unless config.name == 'Release'
+    config.build_settings['DEVELOPMENT_TEAM'] = ENV.fetch('APPLE_TEAM_ID')
+    config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
+    config.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Distribution'
+    config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ENV.fetch('PROFILE_UUID')
+  end
+end
+project.save
+RUBY
+
+xcodebuild \
   -workspace "$WORKSPACE" \
   -scheme "$SCHEME" \
   -configuration Release \
   -destination 'generic/platform=iOS' \
   -archivePath "$ARCHIVE" \
-  -derivedDataPath "$RUNNER_TEMP/RitmoDerivedData" \
-  DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-  CODE_SIGN_STYLE=Manual \
-  CODE_SIGN_IDENTITY='Apple Distribution' \
-  "PROVISIONING_PROFILE_SPECIFIER=$PROFILE_UUID" \
+  -derivedDataPath "$DERIVED_DATA" \
+  -resultBundlePath "$RESULT_BUNDLE" \
+  -sdk iphoneos \
+  ONLY_ACTIVE_ARCH=NO \
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-  archive
+  clean archive 2>&1 | tee "$RUNNER_TEMP/ritmo-archive.log"
 
 # Validate the app being shipped, not merely the source app.json.
 APP_PATH=$(find "$ARCHIVE/Products/Applications" -maxdepth 1 -type d -name '*.app' | head -n 1)

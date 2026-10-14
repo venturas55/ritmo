@@ -46,10 +46,16 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - name: Confirmar Xcode
+      - name: Seleccionar y verificar Xcode
+        env:
+          XCODE_APP: ${{ vars.XCODE_APP || '/Applications/Xcode_26.6.app' }}
         run: |
+          test -d "$XCODE_APP/Contents/Developer"
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          echo "DEVELOPER_DIR=$XCODE_APP/Contents/Developer" >> "$GITHUB_ENV"
           xcodebuild -version
           xcrun --find xcodebuild
+          xcrun --sdk iphoneos --show-sdk-path
 
       - name: Install dependencies
         run: npm ci
@@ -66,6 +72,7 @@ jobs:
       - name: Install CocoaPods
         run: |
           cd ios
+          pod --version
           pod install --repo-update
 
       - name: Importar certificado y provisioning profile
@@ -78,7 +85,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          PROFILE_UUID="088b8f3a-5e76-42ea-8ab5-93e38570f630"
+          : "${PROFILE_UUID:?Missing PROFILE_UUID}"
           PROFILE="$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
 
           if [ ! -f "$PROFILE" ]; then
@@ -102,6 +109,19 @@ jobs:
           echo "Perfil de aprovisionamiento verificado correctamente."
       - name: Archive and export IPA
         run: bash scripts/ios_build_archive.sh
+
+      - name: Guardar diagnóstico de Xcode
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ritmo-ios-diagnostics-${{ github.run_number }}
+          path: |
+            ${{ runner.temp }}/ritmo-archive.log
+            ${{ runner.temp }}/RitmoArchive.xcresult
+            ios/Podfile
+            ios/Podfile.lock
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Descargar IPA desde GitHub Actions
         uses: actions/upload-artifact@v4
