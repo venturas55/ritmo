@@ -73,6 +73,33 @@ jobs:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: bash scripts/ios_prepare_signing.sh
 
+      - name: Verificar permisos del perfil instalado
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PROFILE_UUID="088b8f3a-5e76-42ea-8ab5-93e38570f630"
+          PROFILE="$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+
+          if [ ! -f "$PROFILE" ]; then
+            echo "::error::No se encuentra el perfil instalado"
+            exit 1
+          fi
+
+          security cms -D -i "$PROFILE" > /tmp/ritmo-profile.plist
+
+          APS=$(/usr/libexec/PlistBuddy \
+            -c "Print :Entitlements:aps-environment" \
+            /tmp/ritmo-profile.plist)
+
+          echo "aps-environment: $APS"
+
+          if [ "$APS" != "production" ]; then
+            echo "::error::El perfil no tiene Push Notifications para producción"
+            exit 1
+          fi
+
+          echo "Perfil de aprovisionamiento verificado correctamente."
       - name: Archive and export IPA
         run: bash scripts/ios_build_archive.sh
 
