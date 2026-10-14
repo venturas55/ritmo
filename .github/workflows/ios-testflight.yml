@@ -73,7 +73,14 @@ jobs:
         run: |
           cd ios
           pod --version
-          pod install --repo-update
+          pod install --repo-update 2>&1 | tee "$RUNNER_TEMP/ritmo-pods.log"
+
+      - name: Diagnosticar modulemaps de Expo
+        run: |
+          # Built-product module maps can appear only during compilation.
+          # Inspect pod support files here without requiring build output yet.
+          find ios/Pods -name '*EXApplication*' -print
+          find ios/Pods -name '*.modulemap' -print
 
       - name: Verificar workspace de CocoaPods
         shell: bash
@@ -138,6 +145,7 @@ jobs:
           name: ritmo-ios-diagnostics-${{ github.run_number }}
           path: |
             ${{ runner.temp }}/ritmo-archive.log
+            ${{ runner.temp }}/ritmo-pods.log
             ${{ runner.temp }}/RitmoArchive.xcresult
             ios/Podfile
             ios/Podfile.lock

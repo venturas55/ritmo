@@ -4,14 +4,28 @@ set -euo pipefail
 : "${APPLE_BUNDLE_ID:?Missing APPLE_BUNDLE_ID}"
 : "${PROFILE_UUID:?Missing PROFILE_UUID}"
 
-WORKSPACE=$(find ios -maxdepth 2 -name '*.xcworkspace' -type d | head -n 1)
-[ -n "$WORKSPACE" ] || { echo 'No ios/*.xcworkspace generated'; exit 1; }
-# Detect app scheme from shared xcscheme, avoiding assumptions about Expo display name.
-SCHEME_FILE=$(find ios -path '*/xcshareddata/xcschemes/*.xcscheme' -type f | head -n 1)
-[ -n "$SCHEME_FILE" ] || { echo 'No shared Xcode scheme generated'; exit 1; }
-SCHEME=$(basename "$SCHEME_FILE" .xcscheme)
-echo "Building Xcode scheme: $SCHEME"
+# Detectar exclusivamente el workspace generado por CocoaPods
+WORKSPACE=$(find ios -maxdepth 1 -name '*.xcworkspace' -type d -print -quit)
 
+if [ -z "$WORKSPACE" ]; then
+  echo "ERROR: No se encuentra el workspace de CocoaPods"
+  exit 1
+fi
+
+echo "Workspace seleccionado: $WORKSPACE"
+
+# Detectar el esquema principal de la aplicación
+SCHEME_FILE=$(find ios -path '*/xcshareddata/xcschemes/*.xcscheme' \
+  -type f ! -path '*/Pods/*' -print -quit)
+
+if [ -z "$SCHEME_FILE" ]; then
+  echo "ERROR: No se encuentra el esquema compartido"
+  exit 1
+fi
+
+SCHEME=$(basename "$SCHEME_FILE" .xcscheme)
+
+echo "Building Xcode scheme: $SCHEME"
 # GitHub run_number increases monotonically per workflow; Apple requires a fresh build number.
 BUILD_NUMBER="${GITHUB_RUN_NUMBER:?Missing run number}"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "ios/$SCHEME/Info.plist" 2>/dev/null || true
@@ -45,6 +59,8 @@ end
 project.save
 RUBY
 
+# Xcode 26 enables explicit Swift dependency scanning by default. Opt out for
+# this CocoaPods archive to avoid scanning Expo module maps before pod builds.
 xcodebuild \
   -workspace "$WORKSPACE" \
   -scheme "$SCHEME" \
@@ -55,6 +71,7 @@ xcodebuild \
   -resultBundlePath "$RESULT_BUNDLE" \
   -sdk iphoneos \
   ONLY_ACTIVE_ARCH=NO \
+  SWIFT_ENABLE_EXPLICIT_MODULES=NO \
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
   clean archive 2>&1 | tee "$RUNNER_TEMP/ritmo-archive.log"
 
