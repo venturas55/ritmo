@@ -9,14 +9,14 @@
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.tumarca.ritmo",
+      "bundleIdentifier": "com.guardian.ritmo",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.tumarca.ritmo",
+      "package": "com.guardian.ritmo",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#111225"
