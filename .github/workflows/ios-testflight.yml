@@ -17,20 +17,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
-    runs-on: macos-15
-
-    env:
-      RCT_USE_RN_DEP: "0"
-      RCT_USE_PREBUILT_RNCORE: "0"
   ios:
     name: Build IPA on macOS
     runs-on: macos-26
     timeout-minutes: 90
+
     env:
       CI: '1'
       EXPO_NO_TELEMETRY: '1'
       EXPO_NO_GIT_STATUS: '1'
+
+      # Compilar React Native desde código fuente
+      RCT_USE_RN_DEP: '0'
+      RCT_USE_PREBUILT_RNCORE: '0'
       APPLE_BUNDLE_ID: ${{ vars.APPLE_BUNDLE_ID }}
       APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
       IOS_P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}
