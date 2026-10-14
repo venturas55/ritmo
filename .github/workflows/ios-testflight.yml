@@ -75,6 +75,27 @@ jobs:
           pod --version
           pod install --repo-update
 
+      - name: Verificar workspace de CocoaPods
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -d ios/Ritmo.xcworkspace || {
+            echo "::error::Falta ios/Ritmo.xcworkspace"
+            exit 1
+          }
+
+          test -f ios/Pods/Pods.xcodeproj/project.pbxproj || {
+            echo "::error::Falta el proyecto Pods"
+            exit 1
+          }
+
+          echo "Workspace correcto:"
+          ls -ld ios/Ritmo.xcworkspace
+
+          echo "Esquemas disponibles:"
+          xcodebuild -list -workspace ios/Ritmo.xcworkspace
+          
       - name: Importar certificado y provisioning profile
         env:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
