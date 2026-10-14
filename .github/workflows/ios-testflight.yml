@@ -17,6 +17,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  build:
+    runs-on: macos-15
+
+    env:
+      RCT_USE_RN_DEP: "0"
+      RCT_USE_PREBUILT_RNCORE: "0"
   ios:
     name: Build IPA on macOS
     runs-on: macos-26
