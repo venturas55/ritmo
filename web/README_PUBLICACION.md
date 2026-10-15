@@ -28,14 +28,14 @@ En el archivo `app/(tabs)/settings.tsx` de tu versión inicial existían estas c
 
 ```typescript
 const support='mailto:dev@guardiandelfaro.es?subject=Soporte%20Ritmo';
-const privacy='https://guardiandelfaro.es/proyectos/ritmo/privacidad';
+const privacy='https://guardiandelfaro.es/proyectos/ritmo/privacidad.html';
 ```
 
 Sustitúyelas por:
 
 ```typescript
-const support='https://venturas55.github.io/ritmo/soporte.html';
-const privacy='https://venturas55.github.io/ritmo/privacidad.html';
+const support='https://venturas55.github.io/ritmo/web/soporte.html';
+const privacy='https://venturas55.github.io/ritmo/web/privacidad.html';
 ```
 
 Si prefieres contacto directo por email en la app, utiliza `mailto:` con una dirección verdadera y operativa. Tras este cambio necesitarás generar una nueva build para que los enlaces queden actualizados en iOS.
